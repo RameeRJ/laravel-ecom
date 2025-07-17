@@ -6,11 +6,13 @@ use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\CartController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\AdminProductController;
+use App\Http\Controllers\Web\ProductController;
 use App\Http\Middleware\AdminMiddleware;
 
 // Home page and product listing
 Route::get('/', [HomeController::class, 'index'])->name('home');
-
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 // Authentication
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
