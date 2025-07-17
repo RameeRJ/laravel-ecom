@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\CartController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\AdminProductController;
 use App\Http\Controllers\Web\ProductController;
+use App\Http\Controllers\Web\OrderController;
 use App\Http\Middleware\AdminMiddleware;
 
 // Home page and product listing
@@ -26,6 +27,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
     Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
+
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{order}/confirmation', [OrderController::class, 'confirmation'])->name('orders.confirmation');
 });
 
 // Admin panel (requires admin middleware)

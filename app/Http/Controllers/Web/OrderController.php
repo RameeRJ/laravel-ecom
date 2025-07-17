@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
@@ -8,44 +8,44 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Mail\OrderConfirmation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class OrderController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Display the user's orders
+     */
+    public function index()
     {
         $orders = Order::with('orderItems.product')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', Auth::id())
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10);
 
-        return response()->json([
-            'success' => true,
-            'orders' => $orders
-        ]);
+        return view('orders.index', compact('orders'));
     }
 
+    /**
+     * Process the checkout and create order
+     */
     public function store(Request $request)
     {
         $cartItems = Cart::with('product')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', Auth::id())
             ->get();
 
         if ($cartItems->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cart is empty'
-            ], 400);
+            return redirect()->route('cart.index')
+                ->with('error', 'Your cart is empty.');
         }
 
         // Check stock availability
         foreach ($cartItems as $item) {
             if (!$item->product->is_available || $item->product->stock_quantity < $item->quantity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Product '{$item->product->name}' is not available or insufficient stock"
-                ], 400);
+                return redirect()->route('cart.index')
+                    ->with('error', "Product '{$item->product->name}' is not available or insufficient stock.");
             }
         }
 
@@ -58,7 +58,7 @@ class OrderController extends Controller
         try {
             // Create order
             $order = Order::create([
-                'user_id' => $request->user()->id,
+                'user_id' => Auth::id(),
                 'total_amount' => $totalAmount,
                 'status' => 'pending'
             ]);
@@ -82,14 +82,14 @@ class OrderController extends Controller
             }
 
             // Clear cart
-            Cart::where('user_id', $request->user()->id)->delete();
+            Cart::where('user_id', Auth::id())->delete();
 
             // Load order with relationships for email
             $order->load(['orderItems.product', 'user']);
 
             // Send order confirmation email
             try {
-                Mail::to($request->user()->email)->send(new OrderConfirmation($order));
+                Mail::to(Auth::user()->email)->send(new OrderConfirmation($order));
             } catch (\Exception $e) {
                 // Log email error but don't fail the order
                 \Log::error('Order confirmation email failed: ' . $e->getMessage());
@@ -97,33 +97,43 @@ class OrderController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'order' => $order,
-                'message' => 'Order placed successfully! A confirmation email has been sent.'
-            ], 201);
+            return redirect()->route('orders.confirmation', $order)
+                ->with('success', 'Order placed successfully! A confirmation email has been sent.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Order creation failed'
-            ], 500);
+            return redirect()->route('cart.index')
+                ->with('error', 'Order creation failed. Please try again.');
         }
     }
 
-    public function show(Request $request, Order $order)
+    /**
+     * Show order confirmation page
+     */
+    public function confirmation(Order $order)
     {
-        if ($order->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 403);
+        // Ensure user can only view their own orders
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to order.');
         }
 
-        return response()->json([
-            'success' => true,
-            'order' => $order->load('orderItems.product')
-        ]);
+        $order->load(['orderItems.product', 'user']);
+
+        return view('orders.confirmation', compact('order'));
+    }
+
+    /**
+     * Show specific order details
+     */
+    public function show(Order $order)
+    {
+        // Ensure user can only view their own orders
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to order.');
+        }
+
+        $order->load(['orderItems.product']);
+
+        return view('orders.show', compact('order'));
     }
 }

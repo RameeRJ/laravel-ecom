@@ -12,6 +12,20 @@
             </a>
         </div>
         
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+        
         @if($cartItems->count() > 0)
             <div class="card">
                 <div class="card-body">
@@ -20,6 +34,12 @@
                             <div class="col-md-6">
                                 <h5>{{ $item->product->name }}</h5>
                                 <p class="text-muted mb-1">{{ Str::limit($item->product->description, 80) }}</p>
+                                @if($item->product->stock_quantity < $item->quantity)
+                                    <div class="text-danger small">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        Only {{ $item->product->stock_quantity }} left in stock
+                                    </div>
+                                @endif
                             </div>
                             <div class="col-md-2">
                                 <strong>${{ number_format($item->product->price, 2) }}</strong>
@@ -77,20 +97,38 @@
                         <span>${{ number_format($total, 2) }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Tax:</span>
-                        <span>${{ number_format($total * 0.1, 2) }}</span>
+                        <span>Shipping:</span>
+                        <span class="text-success">Free</span>
                     </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax:</span>
+                        <span>$0.00</span>
+                    </div>
+                    
                     <hr>
                     <div class="d-flex justify-content-between mb-3">
                         <strong>Total:</strong>
-                        <strong>${{ number_format($total * 1.1, 2) }}</strong>
+                        <strong>${{ number_format($total , 2) }}</strong>
                     </div>
-                    <button class="btn btn-success w-100">
-                        <i class="fas fa-credit-card"></i> Checkout
-                    </button>
+                    
+                    <form method="POST" action="{{ route('orders.store') }}" id="checkoutForm">
+                        @csrf
+                        <button type="submit" class="btn btn-success w-100" id="checkoutBtn">
+                            <i class="fas fa-credit-card"></i> Checkout
+                        </button>
+                    </form>
+                    
                 </div>
             </div>
         </div>
     @endif
 </div>
+
+<script>
+document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+    const btn = document.getElementById('checkoutBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+});
+</script>
 @endsection
