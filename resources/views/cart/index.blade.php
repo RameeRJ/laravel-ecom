@@ -5,7 +5,12 @@
 @section('content')
 <div class="row">
     <div class="col-md-8">
-        <h2>Shopping Cart</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Shopping Cart</h2>
+            <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Products
+            </a>
+        </div>
         
         @if($cartItems->count() > 0)
             <div class="card">
@@ -15,7 +20,6 @@
                             <div class="col-md-6">
                                 <h5>{{ $item->product->name }}</h5>
                                 <p class="text-muted mb-1">{{ Str::limit($item->product->description, 80) }}</p>
-                                <small class="text-muted">Stock: {{ $item->product->stock_quantity }}</small>
                             </div>
                             <div class="col-md-2">
                                 <strong>${{ number_format($item->product->price, 2) }}</strong>
@@ -54,7 +58,9 @@
                 <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                 <h4>Your cart is empty</h4>
                 <p class="text-muted">Start shopping to add items to your cart.</p>
-                <a href="{{ route('home') }}" class="btn btn-primary">Continue Shopping</a>
+                <a href="{{ route('products.index') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Products
+                </a>
             </div>
         @endif
     </div>
